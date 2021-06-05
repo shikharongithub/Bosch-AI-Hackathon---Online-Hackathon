@@ -1,5 +1,5 @@
 /* This is an Obstacle Avoiding Robot using Reinforcement Learning/AI
-   Author of this Project : Varun Walimbe
+   Author of this Project : The Brogrammers (SHIKHAR VERMA & NIDHI MADDHESIYA)
    Algorithm used in this project: Q learning
 
 How Obstacle Avoiding Works?
