@@ -1,0 +1,89 @@
+The new array of now 7 sensors, is mounted on a way that the 5 original ones are exclusively used for PID control (and detection of the "full line", explained later) and the 2 new ones, left to be used exclusively for LEFT and RIGHT intersection detection.
+
+As a quick review, let's remember how the 5 original "digital" sensors work:
+
+If one sensor is centered with relation to the black line, only that specific sensor will produce a HIGH. By other side, the space between sensors should be calculated to allow that 2 sensors can cover the full width of the black line simultaneously, also producing a HIGH signal on both sensors.
+
+How the 2 new "analog" sensors work:
+
+If one of the sensors is centered with relation to the black line, the output will be an analog value, usually producing an output at Arduino ADC bellow "100" (remember that the ADC produces an output from 0 to 1023). With lighter surfaces, the output value will be higher (I tested 500 to 600 over white paper, for example). This value must be tested on different situations of light and surface materials to define the correct THRESHOLD constant to be used in your case (see the picture here).
+
+Looking at the Arduino code, each one of the sensors will be defined with a specific name (consider that the original Line Follow Sensor more to the Left must be assigned with a label "0 "):
+
+const int lineFollowSensor0 = 12; //Using Digital input
+const int lineFollowSensor1 = 18; //Using Analog Pin A4 as Digital input
+const int lineFollowSensor2 = 17; //Using Analog Pin A3 as Digital input
+const int lineFollowSensor3 = 16; //Using Analog Pin A2 as Digital input
+const int lineFollowSensor4 = 19; //Using Analog Pin A5 as Digital input
+const int farRightSensorPin = 0;  //Analog Pin A0
+const int farLeftSensorPin = 1;   //Analog Pin A1
+To remember, the possible 5 original sensor array output when following a line are:
+
+1  1  1  1  1 
+0 0 0 0 0 
+0 0 0 0 1 
+0 0 0 1  1 
+0 0 0 1 0 
+0 0 1  1 0 
+0 0 1 0 0 
+0 1  1 0 0 
+0 1 0 0 0 
+1  1 0 0 0 
+1 0 0 0 0
+With the addition of the 2 new ones, their possible outputs are:
+
+Far LEFT Sensor: Analog Output greater or lower than a THRESHOLD
+Far RIGHT Sensor: Analog Output greater or lower than a THRESHOLD
+In order to storage the values of each sensor an array variable is created for the original 5 digital sensors:
+
+int LFSensor[5]={0, 0, 0, 0, 0};
+And two integer variables for the 2 new analog sensors:
+
+int farRightSensor = 0;
+int farLeftSensor = 0;
+Each position of the array and variables will be constantly updated with the output of each one of the sensors:
+
+LFSensor[0] = digitalRead(lineFollowSensor0);
+LFSensor[1] = digitalRead(lineFollowSensor1);
+LFSensor[2] = digitalRead(lineFollowSensor2);
+LFSensor[3] = digitalRead(lineFollowSensor3);
+LFSensor[4] = digitalRead(lineFollowSensor4);
+farRightSensor = analogRead(farRightSensorPin);
+farLeftSensor = analogRead(farLeftSensorPin);
+Having 5 sensors, as saw in the Follower Line Robot project, permits the generation of an "error variable" that will help to control the robot's position over the line. Also, a variable called "mode" will be used for definition if the robot is following a line, over a continuous line, an intersection or no line at all.
+
+This variable "mode" will be also used with the "Far LEFT/RIGHT" sensors. For representation, let's consider the far left and right sensors having 3 possible states:
+
+H (higher than THRESHOLD),
+L (smaller than THRESHOLD) and
+X (irrelevant).
+For the digital outputs , will the usual 0, 1 and we will also introduce the X:
+
+H 0 X X X X L ==> mode = RIGHT_TURN; error = 0; (see the example at the image above)
+L X X X X 0 H ==> mode = LEFT_TURN; error = 0;
+X 0 0 0 0 0 X ==> mode = NO_LINE; error = 0;
+H 0 0 0 0 1 H ==> mode = FOLLOWING_LINE; error = 4;
+H 0 0 0 1 1 H ==> mode = FOLLOWING_LINE; error = 3;
+H 0 0 0 1 0 H ==> mode = FOLLOWING_LINE; error = 2;
+H 0 0 1 1 0 H ==> mode = FOLLOWING_LINE; error = 1;
+H 0 0 1 0 0 H ==> mode = FOLLOWING_LINE; error = 0;
+H 0 1 1 0 0 H ==> mode = FOLLOWING_LINE; error = -1;
+H 0 1 0 0 0 H ==> mode = FOLLOWING_LINE; error = -2
+H 1 1 0 0 0 H ==> mode = FOLLOWING_LINE; error = -3;
+H 1 0 0 0 0 H ==> mode = FOLLOWING_LINE; error = -4;
+X 1 1 1 1 1 X ==> mode = CONT_LINE; error = 0;
+So, implementing the above logic in the function:
+
+void readLFSsensors()
+will return the variables "mode" and "error" that will be used at the program logic. It is important to test the logic of the sensors before following with the project. The bellow function is included in the code and can be used for testing purposes:
+
+void testSensorLogic(void) 
+{
+  Serial.print (farLeftSensor);
+  Serial.print (" <== LEFT RIGH==> ");
+  Serial.print (farRightSensor);
+  Serial.print (" mode: ");
+  Serial.print (mode);
+  Serial.print (" error:");
+  Serial.println (error);
+}
